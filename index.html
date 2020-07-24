@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Card Number Generator</title>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <link rel="shortcut icon" type="image/ico" href="./favicon.ico" />
+
+  <style type="text/css">
+    .main {
+      display: table;
+      margin-right: auto;
+      margin-left: auto;
+      font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    }
+
+    .cell {
+      width: 250px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+      position: relative;
+      margin-right: 100px;
+    }
+
+    .cardbrand {
+      margin-top: 20px;
+    }
+
+    #hint {
+      margin-left: 12px;
+      color: gray;
+    }
+
+    .more {
+      color: lightgray;
+      margin-top: 50px;
+    }
+
+    .numberfield {
+      width: 150px;
+    }
+
+    a {
+      color: lightskyblue;
+    }
+  </style>
+
+</head>
+
+<body>
+  <div class="main">
+    <div class="cell">
+      Min-length: <input class="numberfield" type="text" id="minlength" value="12" onkeypress='validate(event)' />
+    </div>
+    <div class="cell">
+      Max-length: <input class="numberfield" type="text" id="maxlength" value="19" onkeypress='validate(event)' />
+    </div>
+    <div class="cell">
+      Prefix: <input class="numberfield" type="text" id="prefix" onkeypress='validate(event)' />
+    </div>
+    <div class="cell">
+      Suffix: <input class="numberfield" type="text" id="suffix" onkeypress='validate(event)' />
+    </div>
+    <div class="cell">
+      Output: <input class="numberfield" type="text" id="output" onkeypress='validate(event)' />
+    </div>
+    <div class="cell">
+      <button id="generate" onclick="generate()">Generate</button>
+      <label id="hint"></label>
+    </div>
+
+    <div class="cardbrand">
+      <input type="radio" name="group42" id="custom" onclick='choose("custom")' checked>Custom
+      <input type="radio" name="group42" id="visa" onclick='choose("visa")'>Visa
+      <input type="radio" name="group42" id="mastercard" onclick='choose("mastercard")'>Mastercard
+      <input type="radio" name="group42" id="americanexpress" onclick='choose("americanexpress")'>American Express
+      <input type="radio" name="group42" id="jcb" onclick='choose("jcb")'>JCB
+    </div>
+
+    <div class="more">
+      Learn more about <a href="https://en.wikipedia.org/wiki/Payment_card_number">payment card number</a> and <a
+        href="https://en.wikipedia.org/wiki/Luhn_algorithm">Luhn algorithm</a>.
+    </div>
+  </div>
+
+  <script>
+    function generate() {
+      var minlength = parseInt(document.getElementById("minlength").value);
+      var maxlength = parseInt(document.getElementById("maxlength").value);
+      var prefix = document.getElementById("prefix").value;
+      var suffix = document.getElementById("suffix").value;
+
+      if (minlength < 2) {
+        window.alert("Min-length should be no smaller than 2.");
+        return;
+
+      } else if (maxlength < minlength) {
+        window.alert("Max-length should be no smaller than min-length.");
+        return;
+
+      } else if (prefix.length + suffix.length + 1 > maxlength) {
+        window.alert("Max-length less than prefix + suffix. Consider using a larger max-length");
+        return;
+      }
+
+      luhn(Math.max(minlength, (prefix.length + suffix.length + 1)), maxlength, prefix, suffix);
+
+      copyToClipboard();
+    }
+
+    function validate(evt) {
+      var theEvent = evt || window.event;
+
+      if (theEvent.type === 'paste') {
+        // Handle paste
+        key = event.clipboardData.getData('text/plain');
+
+      } else {
+        // Handle key press
+        var key = theEvent.keyCode || theEvent.which;
+        key = String.fromCharCode(key);
+      }
+
+      var regex = /[0-9]|\./;
+      if (!regex.test(key)) {
+        theEvent.returnValue = false;
+        if (theEvent.preventDefault) {
+          theEvent.preventDefault();
+        }
+      }
+    }
+
+    function choose(key) {
+      switch (key) {
+        case "custom":
+          document.getElementById("minlength").value = "12";
+          document.getElementById("maxlength").value = "19";
+          document.getElementById("prefix").value = "";
+          document.getElementById("suffix").value = "";
+          break;
+
+        case "visa":
+          document.getElementById("minlength").value = "16";
+          document.getElementById("maxlength").value = "16";
+          document.getElementById("prefix").value = "4";
+          document.getElementById("suffix").value = "";
+          break;
+
+        case "mastercard":
+          document.getElementById("minlength").value = "16";
+          document.getElementById("maxlength").value = "16";
+          document.getElementById("prefix").value = String(randomIntPlus(51, 55, 2221, 2720));
+          document.getElementById("suffix").value = "";
+          break;
+
+        case "americanexpress":
+          document.getElementById("minlength").value = "15";
+          document.getElementById("maxlength").value = "15";
+          document.getElementById("prefix").value = String(randomIntPlus(34, 34, 37, 37));
+          document.getElementById("suffix").value = "";
+          break;
+
+        case "jcb":
+          document.getElementById("minlength").value = "16";
+          document.getElementById("maxlength").value = "19";
+          document.getElementById("prefix").value = String(randomInt(3528, 3589));
+          document.getElementById("suffix").value = "";
+          break;
+
+        default:
+          return;
+
+      }
+    }
+
+    function luhn(minlength, maxlength, prefix, suffix) {
+      const customedLength = prefix.length + suffix.length;
+      var randomGeneratedLength = randomInt(minlength - customedLength, maxlength - customedLength);
+      var randomGeneratedStr = "";
+      for (var i = 0; i < randomGeneratedLength; i++) {
+        randomGeneratedStr = randomGeneratedStr.concat(String(randomInt(0, 9)));
+      }
+
+      var cardNo = prefix.concat(randomGeneratedStr).concat(suffix);
+      var checksum = calcChecksum(cardNo);
+      if (checksum == -1) {
+        window.alert("Input is invalid.");
+        return;
+
+      } else if (checksum != 0) {
+        var adjustIndex = prefix.length + randomInt(0, randomGeneratedLength - 1);
+        for (var i = 0; i < 10; i++) {
+          cardNo = cardNo.substring(0, adjustIndex) + String(i) + cardNo.substring(adjustIndex + 1);
+          if (calcChecksum(cardNo) == 0) {
+            break;
+          }
+        }
+      }
+
+      document.getElementById("output").value = cardNo;
+      return;
+    }
+
+    function calcChecksum(cardNo) {
+      cardNo = String(cardNo);
+      if (!RegExp('^[0-9]{2,}$', 'i').test(cardNo)) {
+        return -1;
+      }
+
+      var convertedCardNo = "";
+      var needConvert = false;
+      for (var i = cardNo.length - 1; i >= 0; i--) {
+        var charVal = cardNo.charAt(i);
+
+        if (needConvert) {
+          var intVal = parseInt(charVal);
+          intVal = 2 * intVal;
+          intVal = (intVal >= 10 ? (intVal - 9) : intVal);
+          charVal = String(intVal);
+        }
+
+        convertedCardNo = charVal.concat(convertedCardNo);
+        needConvert = !needConvert;
+      }
+
+      var checksum = 0;
+      for (var i = 0; i < cardNo.length; i++) {
+        checksum = (checksum + parseInt(convertedCardNo.charAt(i))) % 10;
+      }
+
+      return checksum;
+    }
+
+    // both min and max are included
+    function randomInt(min, max) {
+      if (min > max) {
+        var tmp = min;
+        min = max;
+        max = tmp;
+      }
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function randomIntPlus(minA, maxA, minB, maxB) {
+      var min;
+      var max;
+      if (Math.random() >= 0.5) {
+        min = minA;
+        max = maxA;
+
+      } else {
+        min = minB;
+        max = maxB;
+      }
+
+      if (min > max) {
+        var tmp = min;
+        min = max;
+        max = tmp;
+      }
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function copyToClipboard() {
+      var copyText = document.getElementById("output");
+      copyText.select();
+      copyText.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      document.getElementById("hint").innerHTML = "Copied!";
+    }
+  </script>
+
+</body>
+
+</html>
